@@ -75,34 +75,34 @@ def getBD():
         print(aux)
 
 
-    print(cursor.count())
+    print('Usuarios: '+str(cursor.count()))
     
     cursor = canciones.find({}, {'_id': False})
     
     #for aux in cursor:
         #print(aux)
     
-    print(cursor.count())
+    print('Canciones: '+str(cursor.count()))
           
     #cursor = cancion_usuario.find({"valoracion": {"$gt": 1}})
-    cursor = cancion_usuario.find({}, {'_id': False})
+    cursor = cancion_usuario.find({}, {'_id': False}).sort([("fecha", pymongo.ASCENDING)])
         
     for aux in cursor:
         print(aux)
         
-    print(cursor.count())
-  
+    print('Cancion-Usuario: '+str(cursor.count()))
+      
     cursor = usuario_usuario.find({}, {'_id': False})
     
     for aux in cursor:
         print(aux)
     
-    print(cursor.count())
+    print('Usuario-Usuario: '+str(cursor.count()))
     
 def getEmocionesUsuarios():
     
-    cursor = cancion_usuario.find({}, {'_id': False}).sort([("fecha", pymongo.DESCENDING)]).limit(100)
-    
+    cursor = cancion_usuario.find({}, {'_id': False}).sort([("fecha", pymongo.DESCENDING)])
+    #cursor = cancion_usuario.find({'hora' : {'$gte': -2208987916.0, '$lt': -2208937516.0}})
     
     df = pd.DataFrame(columns=['Emocion'])
     
@@ -110,13 +110,27 @@ def getEmocionesUsuarios():
         
         emocion = canciones.find({'cancion_id': aux['cancion_id']}, {'_id': False})[0]['emocion']
         df = df.append({'Emocion': emocion}, ignore_index=True)
-        print(canciones.find({'cancion_id': aux['cancion_id']}, {'_id': False})[0])
     
-    emocionesStats = df.groupby('Emocion').groups
-    print(emocionesStats)
+    print(df['Emocion'].value_counts())
     print(cursor.count())
-
-
+    
+def getNoRepetidos():
+    
+                
+    cursor = cancion_usuario.aggregate( 
+            [
+                {"$group": { "_id": { 'usuario_id': "$usuario_id", 'cancion_id': "$cancion_id"}, 'valoracion': {"$first": "$valoracion"}, 'count': { '$sum': 1 }} },
+                
+            ]
+        );
+       
+    copia = list(cursor)  
+    result = pd.DataFrame(list(aux['_id'] for aux in copia)).join(pd.DataFrame(list(aux['valoracion'] for aux in copia),columns=['valoracion']))
+   
+    print(result)
+    result.to_csv('sin_join')
+        
+        
 
 #usuario_usuario.create_index([('usuario_id', pymongo.TEXT),('seguido_id', pymongo.TEXT)],unique=True)    
 #cancion_usuario.create_index([('cancion_id', pymongo.TEXT),('fecha', pymongo.TEXT)],unique=True)
@@ -136,12 +150,16 @@ def getEmocionesUsuarios():
 #usuario_usuario.drop()
 
 #usuarios.update({'identificador': 'mariopirey'}, {'$rename': { 'identificador': 'usuario_id'}})
- #cancion_usuario.update_many({"usuario_id": "11125830071","cancion_id": "6leiozlpP23gdhy9j8eHbx"},{'$set': {"valoracion": "2"}})
+#cancion_usuario.update_many({},{'$set': {"valoracion_emocion": 0}})
 
 
 getBD()    
 #cambiarFechas()
+getEmocionesUsuarios()
 
+#print(time.mktime(datetime.datetime.strptime('14:00:00', "%H:%M:%S").timetuple()))
+#getNoRepetidos()
 
-
+cursor = cancion_usuario.find({}, {'_id': False}).sort([("fecha", pymongo.DESCENDING)]).limit(1)
+print(cursor[0])
 

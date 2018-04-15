@@ -32,6 +32,7 @@ def not_authorized(error=None):
 
 def download_file(url,local_filename):
     r = requests.get(url, stream=True)
+
     with open('Canciones/'+local_filename+'.mp3', 'wb') as f:
         for chunk in r.iter_content(chunk_size=1024): 
             if chunk:
@@ -66,7 +67,8 @@ def crear_relacion(cancion,usuario,fecha):
                 "usuario_id": usuario,
                 "fecha":fechaConvertida,
                 "hora": horaConvertida,
-                "valoracion": 0}   
+                "valoracion": 0,
+                "valoracion_emocion": 0}   
                                 
     cancion_usuario.insert_one(relacion)
 
@@ -195,10 +197,12 @@ def getRecientes():
             cancion = json.loads(cancion)
             
             if relacion.count() > 0:
-                cancion['valoracion'] = relacion[0]['valoracion'] 
+                cancion['valoracion'] = relacion[0]['valoracion']
+                cancion['valoracion_emocion'] = relacion[0]['valoracion_emocion']
             else:
                 crear_relacion(aux['track']['id'],usuario['id'],aux['played_at'].split('.')[0])
                 cancion['valoracion'] = "0"
+                cancion['valoracion_emocion'] = "0"
             
             cancionesArray.append(cancion)
                 
@@ -230,9 +234,11 @@ def getActual():
         cancion = json.loads(cancion)
                       
         if relacion.count() > 0:
-            cancion['valoracion'] = relacion[0]['valoracion'] 
+            cancion['valoracion'] = relacion[0]['valoracion']
+            cancion['valoracion_emocion'] = relacion[0]['valoracion_emocion']
         else:
             cancion['valoracion'] = "0"
+            cancion['valoracion_emocion'] = "0"
     else:
         return ('', 204)
         
@@ -244,7 +250,8 @@ def actualizarValoracion(cancion_id):
     auth = request.headers.get('Authorization')
     cancion = request.json 
     valoracion = cancion['valoracion']
-   
+    valoracion_emocion = cancion['valoracion_emocion']
+    
     try:        
         sp = spotipy.Spotify(auth=auth)
         usuario = sp.current_user()
@@ -254,9 +261,9 @@ def actualizarValoracion(cancion_id):
     relacion = cancion_usuario.find({'usuario_id': usuario['id'],'cancion_id': cancion_id})
     
     if relacion.count() > 0:
-        cancion_usuario.update_many({"usuario_id": usuario['id'],"cancion_id": cancion_id},{'$set': {"valoracion": int(valoracion)}})
+        cancion_usuario.update_many({"usuario_id": usuario['id'],"cancion_id": cancion_id},{'$set': {"valoracion": int(valoracion), "valoracion_emocion": int(valoracion_emocion)}})
         
     return ('', 200)
-    
+        
 if __name__ == "__main__":
     app.run(threaded=True,host='0.0.0.0',port=8888)
