@@ -135,7 +135,7 @@ def clasificadorEmociones(fichero):
     
 if __name__ == '__main__':
     
-    clasificadorEmociones('archivo')
+    clasificadorEmociones('305WCRhhS10XUcH6AEwZk6')
     
 
     

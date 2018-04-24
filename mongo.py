@@ -155,11 +155,17 @@ def getNoRepetidos():
 
 getBD()    
 #cambiarFechas()
-getEmocionesUsuarios()
+#getEmocionesUsuarios()
 
-#print(time.mktime(datetime.datetime.strptime('14:00:00', "%H:%M:%S").timetuple()))
+#print(time.mktime(datetime.datetime.strptime('2018-04-15T01:32:51.370Z', "%Y-%m-%dT%H:%M:%S.%fZ").timetuple()))
 #getNoRepetidos()
 
-cursor = cancion_usuario.find({}, {'_id': False}).sort([("fecha", pymongo.DESCENDING)]).limit(1)
-print(cursor[0])
+#cancion = '305WCRhhS10XUcH6AEwZk6'
+
+#cancion_usuario.update_many({'cancion_id': cancion},{'$set': {"valoracion_emocion": 5}})
+
+#cursor = cancion_usuario.find({'cancion_id': cancion}, {'_id': False})
+
+#for aux in cursor:
+#    print(aux)
 
