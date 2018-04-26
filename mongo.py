@@ -85,7 +85,7 @@ def getBD():
     print('Canciones: '+str(cursor.count()))
           
     #cursor = cancion_usuario.find({"valoracion": {"$gt": 1}})
-    cursor = cancion_usuario.find({}, {'_id': False}).sort([("fecha", pymongo.ASCENDING)])
+    cursor = cancion_usuario.find({'usuario_id': '11125830071'}, {'_id': False}).sort([("fecha", pymongo.ASCENDING)])
         
     for aux in cursor:
         print(aux)
@@ -151,7 +151,7 @@ def getNoRepetidos():
 
 #usuarios.update({'identificador': 'mariopirey'}, {'$rename': { 'identificador': 'usuario_id'}})
 #cancion_usuario.update_many({},{'$set': {"valoracion_emocion": 0}})
-
+#cancion_usuario.remove({'valoracion': 0})
 
 getBD()    
 #cambiarFechas()

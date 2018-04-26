@@ -57,7 +57,7 @@ def almacenar_cancion(cancion):
                 
     canciones.insert_one(cancionJSON)
     
-def crear_relacion(cancion,usuario,fecha):
+def crear_relacion(cancion,usuario,fecha,valoracion,valoracion_emocion):
     
     fechaConvertida = time.mktime(datetime.datetime.strptime(fecha, "%Y-%m-%dT%H:%M:%S").timetuple())
     hora = fecha.split('T')[1]
@@ -67,8 +67,8 @@ def crear_relacion(cancion,usuario,fecha):
                 "usuario_id": usuario,
                 "fecha":fechaConvertida,
                 "hora": horaConvertida,
-                "valoracion": 0,
-                "valoracion_emocion": 0}   
+                "valoracion": valoracion,
+                "valoracion_emocion": valoracion_emocion}   
                                 
     cancion_usuario.insert_one(relacion)
 
@@ -187,6 +187,7 @@ def getRecientes():
         if not aux['track']['id'] in identificadores:
             
             cancion = canciones.find({'cancion_id': aux['track']['id']}, {'_id': False})
+            
             if not cancion.count() > 0: 
                 if aux['track']['preview_url']:
                     almacenar_cancion(aux['track'])
@@ -194,22 +195,30 @@ def getRecientes():
             
             if cancion.count() > 0:
                 
+                relacionGeneral = cancion_usuario.find({'usuario_id': usuario['id'],'cancion_id': aux['track']['id']}, {'_id': False})
+                cancion = dumps(cancion[0])
+                cancion = json.loads(cancion)
+                
                 zz = aux['played_at'].split('.')
+                
                 if(len(zz) > 1):
                     zz = zz[0]
                 else:
                     zz = aux['played_at'].split('Z')[0]
-                                    
-                fecha = time.mktime(datetime.datetime.strptime(zz, "%Y-%m-%dT%H:%M:%S").timetuple())
-                relacion = cancion_usuario.find({'usuario_id': usuario['id'],'cancion_id': aux['track']['id'],'fecha': fecha }, {'_id': False})
-                cancion = dumps(cancion[0])
-                cancion = json.loads(cancion)
                 
-                if relacion.count() > 0:
-                    cancion['valoracion'] = relacion[0]['valoracion']
-                    cancion['valoracion_emocion'] = relacion[0]['valoracion_emocion']
+                if relacionGeneral.count() > 0:
+
+                    fecha = time.mktime(datetime.datetime.strptime(zz, "%Y-%m-%dT%H:%M:%S").timetuple())
+                    relacionActual = cancion_usuario.find({'usuario_id': usuario['id'],'cancion_id': aux['track']['id'],'fecha': fecha }, {'_id': False})
+                        
+                    if not relacionActual.count() > 0:
+                        crear_relacion(aux['track']['id'],usuario['id'],zz,relacionGeneral[0]['valoracion'],relacionGeneral[0]['valoracion_emocion'])
+
+                    cancion['valoracion'] = relacionGeneral[0]['valoracion']
+                    cancion['valoracion_emocion'] = relacionGeneral[0]['valoracion_emocion']                        
+                        
                 else:
-                    crear_relacion(aux['track']['id'],usuario['id'],zz)
+                    crear_relacion(aux['track']['id'],usuario['id'],zz,0,0)
                     cancion['valoracion'] = "0"
                     cancion['valoracion_emocion'] = "0"
                 

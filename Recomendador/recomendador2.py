@@ -5,7 +5,6 @@ from sklearn.metrics.pairwise import pairwise_distances
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from math import sqrt
-from scipy.sparse import csr_matrix
 from sklearn.neighbors import NearestNeighbors
 
 client = MongoClient('localhost', 27017)
@@ -114,53 +113,48 @@ def getRecommendation(usuario,rating_id):
     relaciones = get_datos(rating_id)
     cancionesRatings = getMatrix(relaciones,rating_id)  
     estadisticasValoraciones(relaciones,rating_id)
-    
-    #wide_artist_data_sparse = csr_matrix(cancionesRatings.T.values)
-        
+           
     #canciones con mayor rating del usuario
     myRatings = cancionesRatings.loc[usuario].dropna().sort_values(ascending=False)
     myRatings.to_csv('Ratings_usuario',header=1)
     
-    cancionesRatings = cancionesRatings.fillna(0)
     model_knn = NearestNeighbors(metric = 'cosine', algorithm = 'brute')
-    model_knn.fit(cancionesRatings)
+    model_knn.fit(cancionesRatings.fillna(0))
 
-    query_index = np.random.choice(cancionesRatings.shape[0])
-    print(query_index)
-    distances, indices = model_knn.kneighbors(cancionesRatings.iloc[query_index, :].reshape(1, -1), n_neighbors = 5)
-
+    query_index = cancionesRatings.index.get_loc(usuario)
+    
+    distances, indices = model_knn.kneighbors(cancionesRatings.fillna(0).iloc[query_index, :].reshape(1, -1), n_neighbors = 5)
+    distances = 1 - distances[0]
+       
     for i in range(0, len(distances.flatten())):
         if i == 0:
             print('Recommendations for {0}:\n'.format(cancionesRatings.index[query_index]))
         else:
-            print('{0}: {1}, with distance of {2}:'.format(i, cancionesRatings.index[indices.flatten()[i]], 1 - distances.flatten()[i]))
+            print('{0}: {1}, with distance of {2}:'.format(i, cancionesRatings.index[indices.flatten()[i]], distances.flatten()[i]))
     
-    print(cancionesRatings.T.index[2])
-    predict_users(cancionesRatings)
-    item_similarity = predict_items(cancionesRatings)
-    item_similarityDF = pd.DataFrame(item_similarity, index=list(cancionesRatings.columns.values), columns= list(cancionesRatings.columns.values) )
-
-    posiblesSimilares = pd.Series()
     
-    for i in range(0, len(myRatings.index)):
-        sims = cancionesSimilares(item_similarityDF,myRatings.index[i])
-        
-        posiblesSimilares = posiblesSimilares.append(sims)
-        
-    posiblesSimilares = posiblesSimilares.groupby(posiblesSimilares.index).sum()
-    filtered = posiblesSimilares.drop(myRatings.index,errors='ignore').sort_values(ascending=False)
-    filtered.to_csv('Recomendaciones')
+    similarUsers = cancionesRatings.index[indices.flatten()]
+    myRating = myRatings.sum()/len(myRatings)
+   
+    posiblesSimilares = {}  
+      
+    for i in range(0,len(cancionesRatings.columns)):
+        sumatorio = 0
+        for j in range(1,len(similarUsers)):
+            userRating = cancionesRatings.loc[similarUsers[j]]
+            long = len(userRating.dropna())
+            userRating = userRating.fillna(0)
+            aux = userRating.sum()/long
+            aux2 = userRating[cancionesRatings.columns[i]] - aux
+            pp = distances[j] * aux2
+            sumatorio = sumatorio + pp
+            
+        final = myRating + sumatorio/distances.sum()
+        posiblesSimilares[cancionesRatings.columns[i]] = final
     
-    #recom_items = cancionesRatings.fillna(0).dot(item_similarity).as_matrix() / np.array([np.abs(item_similarity).sum(axis=1)])
-    
-    #recom_items = pd.DataFrame(recom_items, index=cancionesRatings.index.values, columns= list(cancionesRatings.columns.values) )
-    #recom_items.to_csv('recom_items')
-    
-    #userRatings = recom_items.loc[usuario]
-  
-    #filtered = userRatings.drop(myRatings.index,errors='ignore')
-    #filtered = pd.DataFrame(filtered).sort_values(usuario,ascending=False)
-    #filtered.to_csv('Recomendaciones')
+    s = pd.Series(posiblesSimilares, name='Ranking').drop(myRatings.index,errors='ignore')
+    s = s.reset_index().sort_values(by='Ranking',ascending=False)
+    s.to_csv("Recomendaciones")
 
 
 #Obtener evaluacion de los resultados predichos
@@ -174,7 +168,10 @@ def getEvaluation(rating_id):
     
     evaluation = rmse(recom_items,test_data.fillna(0).as_matrix())
     print(evaluation)
-       
+    
+
+
+
 getRecommendation('11125830071','valoracion')
 #getEvaluation('valoracion_emocion')
     
