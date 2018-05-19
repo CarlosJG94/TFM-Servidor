@@ -1,5 +1,5 @@
 import pymongo
-from pymongo import MongoClient, IndexModel
+from pymongo import MongoClient
 import emociones
 import spotipy.util as util
 import spotipy
@@ -26,6 +26,7 @@ def getAuthToken(username,client_id,client_secret):
     return token
     
 def procesarCanciones():
+    
     token = getAuthToken('11125830071',"8ef0ee1341c140f2bfebf028664b280d","98eb3c80931b4aa1a15200905ec3709d")
     
     sp = spotipy.Spotify(auth=token)
@@ -80,15 +81,15 @@ def getBD():
     cursor = canciones.find({}, {'_id': False})
     
     #for aux in cursor:
-        #print(aux)
+    #    print(aux['acustico'])
     
     print('Canciones: '+str(cursor.count()))
           
     #cursor = cancion_usuario.find({"valoracion": {"$gt": 1}})
     cursor = cancion_usuario.find({'usuario_id': '11125830071'}, {'_id': False}).sort([("fecha", pymongo.ASCENDING)])
         
-    for aux in cursor:
-        print(aux)
+    #for aux in cursor:
+    #    print(aux)
         
     print('Cancion-Usuario: '+str(cursor.count()))
       
@@ -129,10 +130,30 @@ def getNoRepetidos():
    
     print(result)
     result.to_csv('sin_join')
+    
+def anadirValores():
+    
+    cursor = canciones.find({})
+    
+    for aux in cursor:
+        valores = emociones.clasificadorEmociones(aux['cancion_id'])
+        #canciones.update_one({'cancion_id': aux['cancion_id'] },{'$set': {"fiesta": valores['fiesta'],'triste': valores['triste'], 'relajado': valores['relajado']}})
+        canciones.update_one({'cancion_id': aux['cancion_id'] },{'$set': {"acustico": valores['acustico']}})
+        print(aux)
         
-        
+def anadirValores2():
+    
+    cursor = usuarios.find({})
+    
+    p = {}
+    
+    for aux in cursor:
+        cursor2 = cancion_usuario.find({'usuario_id': aux['usuario_id']})
+        for aux2 in cursor2:            
+            valores = emociones.clasificadorEmociones(aux2['cancion_id'])
+            usuarios.update({'usuario_id': aux['usuario_id']}, {'$inc': {valores['emocion']: 1}})
 
-#usuario_usuario.create_index([('usuario_id', pymongo.TEXT),('seguido_id', pymongo.TEXT)],unique=True)    
+ 
 #cancion_usuario.create_index([('cancion_id', pymongo.TEXT),('fecha', pymongo.TEXT)],unique=True)
 #index1 = IndexModel([("cancion_id", pymongo.TEXT),
 #                     ("fecha", pymongo.TEXT)], unique=True)
@@ -150,22 +171,21 @@ def getNoRepetidos():
 #usuario_usuario.drop()
 
 #usuarios.update({'identificador': 'mariopirey'}, {'$rename': { 'identificador': 'usuario_id'}})
-#cancion_usuario.update_many({},{'$set': {"valoracion_emocion": 0}})
+#usuarios.update_many({},{'$set': {"Exaltado": 0, 'Sereno': 0, 'Calmado': 0, 'Relajado': 0, 'Aburrido': 0, 'Triste': 0, 'Alegre:': 0, "Activo": 0, 'Deprimido': 0, 'Excitado': 0, 'Enfado': 0, 'Frustrado': 0 }})
 #cancion_usuario.remove({'valoracion': 0})
 
-getBD()    
+#cancion_usuario.remove({'cancion_id': '5bhDL4GgUvr5LBrpjqyrte'})
+#usuarios.update_many( {}, { '$rename': { 'Alegre:': 'Alegre'} } )
+getBD()
+#anadirValores2()
+#cursor = canciones.find({'cancion_id': '1cm7v7dBQDjewVTYlqjUX6'})
+#print(cursor[0])
+#anadirValores()    
 #cambiarFechas()
 #getEmocionesUsuarios()
 
 #print(time.mktime(datetime.datetime.strptime('2018-04-15T01:32:51.370Z', "%Y-%m-%dT%H:%M:%S.%fZ").timetuple()))
 #getNoRepetidos()
 
-#cancion = '305WCRhhS10XUcH6AEwZk6'
 
-#cancion_usuario.update_many({'cancion_id': cancion},{'$set': {"valoracion_emocion": 5}})
-
-#cursor = cancion_usuario.find({'cancion_id': cancion}, {'_id': False})
-
-#for aux in cursor:
-#    print(aux)
 

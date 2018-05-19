@@ -5,6 +5,7 @@ from flask_cors import CORS
 import requests
 from pymongo import MongoClient
 import os
+import recomendador
 import emociones
 from bson.json_util import dumps
 import time
@@ -30,7 +31,7 @@ def not_authorized(error=None):
 
     return resp
 
-def download_file(url,local_filename):
+def download_file(url,local_filename):      
     r = requests.get(url, stream=True)
 
     with open('Canciones/'+local_filename+'.mp3', 'wb') as f:
@@ -46,14 +47,20 @@ def almacenar_cancion(cancion):
     os.system('essentia_streaming_extractor_music Canciones/'+identificador+'.mp3 Canciones/'+identificador+'.json configuracion.yaml')
     os.remove('Canciones/'+identificador+'.mp3')   
 
-    emocion = emociones.clasificadorEmociones(identificador)
-    
+    valores = emociones.clasificadorEmociones(identificador)
+   
     cancionJSON = {"cancion_id": identificador,
-               "titulo": cancion['name'],
-               "artistas": [artista['name'] for artista in cancion['artists']],
-               "preview_url": cancion['preview_url'],
-                "imagen": cancion['album']['images'][0]['url'],
-                "emocion": emocion}   
+                   "titulo": cancion['name'],
+                   "artistas": [artista['name'] for artista in cancion['artists']],
+                   "preview_url": cancion['preview_url'],
+                   "imagen": cancion['album']['images'][0]['url'],
+                   "emocion": valores['emocion'],
+                   "acustico": valores['acustico'],
+                   "agresivo": valores['agresivo'],
+                   "triste": valores['triste'],
+                   "relajado": valores['relajado'],
+                   "fiesta": valores['fiesta'],
+                   "feliz": valores['feliz']}   
                 
     canciones.insert_one(cancionJSON)
     
@@ -71,6 +78,9 @@ def crear_relacion(cancion,usuario,fecha,valoracion,valoracion_emocion):
                 "valoracion_emocion": valoracion_emocion}   
                                 
     cancion_usuario.insert_one(relacion)
+    
+    valores = emociones.clasificadorEmociones(cancion)
+    usuarios.update({'usuario_id': usuario}, {'$inc': {valores['emocion']: 1}})
 
 @app.route("/Perfil")
 def getPerfil():
@@ -95,7 +105,7 @@ def getPerfil():
             display_name = respuesta['display_name']
         else:
             display_name = respuesta['id']
-        usuarios.insert_one({'usuario_id': respuesta['id'], 'image': image, 'display_name': display_name})
+        usuarios.insert_one({'usuario_id': respuesta['id'], 'image': image, 'display_name': display_name, "Exaltado": 0, 'Sereno': 0, 'Calmado': 0, 'Relajado': 0, 'Aburrido': 0, 'Triste': 0, 'Alegre': 0, "Activo": 0, 'Deprimido': 0, 'Excitado': 0, 'Enfado': 0, 'Frustrado': 0 })
         usuario = usuarios.find({'usuario_id': respuesta['id']}, {'_id': False})
                     
     return dumps(usuario[0])
@@ -110,9 +120,10 @@ def getUsuarios():
         usuario = sp.current_user()
     except: 
         return not_authorized()
-        
-    respuesta = usuarios.find({'usuario_id':{"$ne": usuario['id']}}, {'_id': False})
+                
+    usuariosDict = recomendador.getSimilarUsers(usuario['id'])
     
+    respuesta = usuarios.find({"usuario_id" : {"$in" : list(usuariosDict.keys())}});
     respuesta = dumps(respuesta)
     respuesta = json.loads(respuesta)
     
@@ -123,6 +134,8 @@ def getUsuarios():
             usua['seguido'] = True
         else:
             usua['seguido'] = False
+            
+        usua['similitud']  = int(round(usuariosDict[usua['usuario_id']]*100))
                         
     return json.dumps(respuesta)
     
@@ -226,6 +239,34 @@ def getRecientes():
                 cancionesArray.append(cancion)
                 
     return json.dumps(cancionesArray)
+
+@app.route("/Recomendaciones")
+def getRecomendaciones():
+    
+    auth = request.headers.get('Authorization')
+    
+    try:        
+        sp = spotipy.Spotify(auth=auth)
+        usuario = sp.current_user()
+    except: 
+        return not_authorized()
+        
+    recomendaciones = recomendador.getUserRecommendation(usuario['id'])
+    
+    respuesta = canciones.find({"cancion_id" : {"$in" : recomendaciones}});
+    respuesta = dumps(respuesta)
+    respuesta = json.loads(respuesta)
+    
+    cancionesArray = []
+
+    
+    for cancion in respuesta:
+        cancion['valoracion'] = "0"
+        cancion['valoracion_emocion'] = "0"
+        cancionesArray.append(cancion)
+    
+    return json.dumps(cancionesArray)
+        
     
 @app.route("/Actual")
 def getActual():

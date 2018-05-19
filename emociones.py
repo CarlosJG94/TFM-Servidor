@@ -17,16 +17,21 @@ def clasificadorEmociones(fichero):
     valores['bailable'] = datos['rhythm']['danceability']
     valores['timbre'] =  datos['highlevel']['timbre']['value']
     valores['tonal'] = datos['highlevel']['tonal_atonal']['value']
+    
+    #Porcentaje emociones
+    valores['acustico'] = datos['highlevel']['mood_acoustic']['all']['acoustic']
+    valores['agresivo'] = datos['highlevel']['mood_aggressive']['all']['aggressive']
     valores['feliz'] = datos['highlevel']['mood_happy']['all']['happy']
     valores['fiesta'] = datos['highlevel']['mood_party']['all']['party']
     valores['triste'] = datos['highlevel']['mood_sad']['all']['sad']
     valores['relajado'] = datos['highlevel']['mood_relaxed']['all']['relaxed']
-    
+        
+    #Calculo de valencia y activacion 
     valores['valencia'] = valores['feliz'] - valores['triste']
     valores['activacion'] = valores['fiesta'] - valores['relajado']
     
     angulo = math.degrees(math.atan2(valores['activacion'], valores['valencia']))
-    
+
     if valores['activacion'] < 0 and angulo > 0:
         valores['angulo'] = angulo - 180
     elif valores['activacion'] > 0 and valores['valencia'] < 0:
@@ -131,11 +136,13 @@ def clasificadorEmociones(fichero):
         emocion = "Neutral"
         cercania_emocion = 100
         
-    return emocion
+    valores['emocion'] = emocion
+        
+    return valores
     
 if __name__ == '__main__':
     
-    clasificadorEmociones('305WCRhhS10XUcH6AEwZk6')
+    clasificadorEmociones('0FoBLDicgJ05xqJX6Zn4JB')
     
 
     
