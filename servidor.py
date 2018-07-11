@@ -19,6 +19,7 @@ usuarios = db.usuarios
 canciones = db.canciones
 cancion_usuario = db.cancion_usuario
 usuario_usuario = db.usuario_usuario
+estadisticas = db.estadisticas
 
 @app.errorhandler(401)
 def not_authorized(error=None):
@@ -60,7 +61,12 @@ def almacenar_cancion(cancion):
                    "triste": valores['triste'],
                    "relajado": valores['relajado'],
                    "fiesta": valores['fiesta'],
-                   "feliz": valores['feliz']}   
+                   "feliz": valores['feliz'],
+                   "volumen": valores['volumen'],
+                   "disonancia": valores["disonancia"],
+                   "bpm": valores['bpm'],
+                   'timbre': valores['timbre'],
+                   'tonal': valores['tonal']} 
                 
     canciones.insert_one(cancionJSON)
     
@@ -243,6 +249,7 @@ def getRecientes():
 @app.route("/Recomendaciones")
 def getRecomendaciones():
     
+    metodo = request.args.get('metodo')
     auth = request.headers.get('Authorization')
     
     try:        
@@ -250,9 +257,12 @@ def getRecomendaciones():
         usuario = sp.current_user()
     except: 
         return not_authorized()
+
+    if metodo == 'User':        
+        recomendaciones = recomendador.getUserRecommendation(usuario['id'],10)
+    else:
+        recomendaciones, predicciones = recomendador.getItemRecommendation(usuario['id'],100)        
         
-    recomendaciones = recomendador.getUserRecommendation(usuario['id'])
-    
     respuesta = canciones.find({"cancion_id" : {"$in" : recomendaciones}});
     respuesta = dumps(respuesta)
     respuesta = json.loads(respuesta)
@@ -324,6 +334,30 @@ def actualizarValoracion(cancion_id):
         cancion_usuario.update_many({"usuario_id": usuario['id'],"cancion_id": cancion_id},{'$set': {"valoracion": int(valoracion), "valoracion_emocion": int(valoracion_emocion)}})
         
     return ('', 200)
+    
+@app.route('/Estadisticas/<cancion_id>', methods=['PUT'])
+def setEstadisticas(cancion_id):
+    
+    auth = request.headers.get('Authorization')
+    cancion = request.json 
+    like = cancion['like']
+    metodo = cancion['metodo']
+    
+    try:        
+        sp = spotipy.Spotify(auth=auth)
+        usuario = sp.current_user()
+    except: 
+        return not_authorized()
+        
+    insertar = {"cancion_id": cancion_id,
+                "usuario_id":  usuario['id'],
+                "like":like,
+                "metodo": metodo}   
+                                
+    estadisticas.insert_one(insertar)
+        
+    return ('', 200)
+        
         
 if __name__ == "__main__":
     app.run(threaded=True,host='0.0.0.0',port=8888)

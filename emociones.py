@@ -12,11 +12,14 @@ def clasificadorEmociones(fichero):
     valores['estilo'] = datos['highlevel']['genre_rosamerica']['value']
     valores['clave'] =  datos['tonal']['key_key']
     valores['escala_clave'] = datos['tonal']['key_scale']
-    valores['bpm'] = datos['rhythm']['bpm']
-    valores['volumen'] = datos['lowlevel']['average_loudness']
     valores['bailable'] = datos['rhythm']['danceability']
-    valores['timbre'] =  datos['highlevel']['timbre']['value']
-    valores['tonal'] = datos['highlevel']['tonal_atonal']['value']
+    
+    
+    valores['volumen'] = datos['lowlevel']['average_loudness']
+    valores['disonancia'] = datos['lowlevel']['dissonance']['mean']   
+    valores['bpm'] = datos['rhythm']['bpm']
+    valores['timbre'] =  datos['highlevel']['timbre']['probability']
+    valores['tonal'] = datos['highlevel']['tonal_atonal']['probability']
     
     #Porcentaje emociones
     valores['acustico'] = datos['highlevel']['mood_acoustic']['all']['acoustic']
@@ -137,12 +140,13 @@ def clasificadorEmociones(fichero):
         cercania_emocion = 100
         
     valores['emocion'] = emocion
+    
         
     return valores
     
 if __name__ == '__main__':
     
-    clasificadorEmociones('0FoBLDicgJ05xqJX6Zn4JB')
+    clasificadorEmociones('0A0RBBTrgfq9eClnw6ZXT7')
     
 
     
