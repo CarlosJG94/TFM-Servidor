@@ -1,0 +1,1 @@
+{"options":{},"indexes":[{"v":1,"key":{"_id":1},"name":"_id_","ns":"Recomendador.canciones"},{"v":1,"unique":true,"key":{"_fts":"text","_ftsx":1},"name":"cancion_id_text","ns":"Recomendador.canciones","weights":{"cancion_id":1},"default_language":"english","language_override":"language","textIndexVersion":3}]}

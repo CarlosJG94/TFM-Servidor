@@ -1,0 +1,1 @@
+{"options":{},"indexes":[{"v":1,"key":{"_id":1},"name":"_id_","ns":"Recomendador.posts"},{"v":1,"unique":true,"key":{"_fts":"text","_ftsx":1},"name":"author_text","ns":"Recomendador.posts","weights":{"author":1},"default_language":"english","language_override":"language","textIndexVersion":3}]}
